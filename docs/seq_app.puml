@@ -1,0 +1,33 @@
+@startuml
+
+skinparam activity {
+  BackgroundColor White
+  BorderColor Black
+  ArrowColor Black
+  DiamondBackgroundColor LightGray
+  DiamondBorderColor Black
+}
+
+start
+
+:Activity.onCreate();
+if (App has permissions?) then (yes)
+else (no)
+  :requestPermissions();
+endif
+
+if (Camera permissions granted?) then (yes)
+  :CameraManager.init();
+  :CameraManager.startCamera();
+  repeat :CameraListener.onCameraFrame();
+    :MotionNet.analyze();
+    :Activity.updateMotionInfo();
+  repeat while (Should continue **and** has next frame?) is (yes) not (no)
+else (no)
+  :Activity.showPermissionInfo();
+endif
+
+:Activity.Cleanup();
+end
+
+@enduml

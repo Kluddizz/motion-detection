@@ -1,0 +1,65 @@
+@startuml
+
+skinparam class {
+  BackgroundColor White
+  BorderColor Black
+  ArrowColor Black
+}
+
+class MainActivity {
+  -previewView : PreviewView
+  -imageView : ImageView
+  -void bindPreview(ProcessCameraProvider provider)
+  -void requestCameraPermission()
+  -void updateMotionInfo()
+  -void showPermissionInfo()
+}
+
+interface Provider
+class CameraXConfig
+
+class CameraManager {
+  -cameraProvider : ProcessCameraProvider
+  -void startCamera()
+}
+
+interface CameraListener {
+  +void {abstract} onCameraFrame(Bitmap bitmap)
+}
+
+interface MotionNet<T : MotionObject> {
+  +T {abstract} analyze(Bitmap bitmap)
+}
+
+class SquadDetector
+
+class SquadNet<SquadMotionObject> {
+}
+
+class MotionObject {
+  +x : Integer
+  +y : Integer
+  +score : Float
+}
+
+class SquadMotionObject {
+  +angle : Float
+}
+
+hide Provider methods
+hide Provider fields
+
+hide CameraXConfig methods
+hide CameraXConfig fields
+
+SquadDetector o-- SquadMotionObject
+SquadDetector --|> CameraListener
+SquadDetector --|> SquadNet
+Provider --+ CameraXConfig
+SquadNet --|> MotionNet
+CameraManager --|> Provider
+CameraManager -- "0..*" CameraListener
+MainActivity -- CameraManager
+SquadMotionObject --|> MotionObject
+
+@enduml
