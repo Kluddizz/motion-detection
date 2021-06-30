@@ -9,9 +9,8 @@ import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.LifecycleOwner
-import de.hsfl.hansen.motiondetection.camera.CameraListener
+import de.hsfl.hansen.motiondetection.utils.ImageHelper.Companion.toBitmap
 import java.io.ByteArrayOutputStream
-import java.util.concurrent.Executor
 
 class CameraManager(
   private val context: Context,
@@ -20,41 +19,23 @@ class CameraManager(
   CameraXConfig.Provider,
   ImageAnalysis.Analyzer {
 
-  private var listeners: MutableList<CameraListener> = mutableListOf()
+  var listener: CameraListener? = null
+  private var isDetecting: Boolean = false
 
   override fun getCameraXConfig(): CameraXConfig {
     return Camera2Config.defaultConfig()
   }
 
-  private fun convertImageToBitmap(image: ImageProxy) : Bitmap {
-    val yBuffer = image.planes[0].buffer
-    val uBuffer = image.planes[1].buffer
-    val vBuffer = image.planes[2].buffer
-
-    val ySize = yBuffer.remaining()
-    val uSize = uBuffer.remaining()
-    val vSize = vBuffer.remaining()
-
-    val nv21 = ByteArray(ySize + uSize + vSize)
-    yBuffer.get(nv21, 0, ySize)
-    uBuffer.get(nv21, ySize, vSize)
-    vBuffer.get(nv21, ySize + vSize, uSize)
-
-    val yuvImage = YuvImage(nv21, ImageFormat.NV21, image.width, image.height, null)
-    val out = ByteArrayOutputStream()
-    yuvImage.compressToJpeg(Rect(0, 0, yuvImage.width, yuvImage.height), 100, out)
-    val imageBytes = out.toByteArray()
-
-    return BitmapFactory.decodeByteArray(imageBytes, 0, imageBytes.size)
-  }
-
   override fun analyze(image: ImageProxy) {
-    for (listener in listeners) {
-      val bitmap = convertImageToBitmap(image)
-      image.close()
+    val bitmap = image.toBitmap()
+    image.close()
+
+    if (!isDetecting) {
+      isDetecting = true
 
       Thread {
-        listener.onCameraFrame(bitmap)
+        bitmap?.let { listener?.onCameraFrame(it) }
+        isDetecting = false
       }.start()
     }
   }
@@ -77,14 +58,6 @@ class CameraManager(
 
     preview.setSurfaceProvider(previewView.surfaceProvider)
     cameraProvider.bindToLifecycle(context as LifecycleOwner, cameraSelector, imageAnalysis, preview)
-  }
-
-  fun addCameraListener(cameraListener: CameraListener) {
-    listeners.add(cameraListener)
-  }
-
-  fun removeCameraListener(cameraListener: CameraListener) {
-    listeners.remove(cameraListener)
   }
 
   fun startCamera() {
